@@ -72,6 +72,13 @@ class DualPaneFileManager
     const COLOR_BRIGHT_MAGENTA = "\033[95m";
     const COLOR_ORANGE = "\033[38;5;208m";
 
+    // Warm color scheme for eye comfort
+    const COLOR_BG_WARM = "\033[48;5;236m";       // Dark warm gray background
+    const COLOR_BG_WARM_HEADER = "\033[48;5;95m"; // Warm brown/mauve for headers
+    const COLOR_BG_WARM_STATUS = "\033[48;5;60m"; // Muted purple for status bar
+    const COLOR_BG_WARM_ACCENT = "\033[48;5;58m"; // Olive/warm accent
+    const COLOR_FG_CREAM = "\033[38;5;230m";      // Cream/warm white text
+
     // Syntax highlighting patterns by language
     private static $syntaxRules = array(
         'php' => array(
