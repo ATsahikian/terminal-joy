@@ -315,6 +315,130 @@ class DualPaneFileManager
         return sprintf('%6.1fG', $size / (1024 * 1024 * 1024));
     }
 
+    private function mbDisplayWidth($str)
+    {
+        // Calculate display width accounting for wide characters (emojis, CJK, etc.)
+        $width = 0;
+        $len = mb_strlen($str, 'UTF-8');
+        for ($i = 0; $i < $len; $i++) {
+            $char = mb_substr($str, $i, 1, 'UTF-8');
+            $ord = mb_ord($char, 'UTF-8');
+            // Skip variation selectors and zero-width joiners (they don't take space)
+            if ($ord == 0xFE0F || $ord == 0xFE0E || $ord == 0x200D) {
+                continue;
+            }
+            // Emojis and wide characters take 2 columns
+            if ($ord > 0x1F600 || ($ord >= 0x2600 && $ord <= 0x27BF) || $ord > 0x10000) {
+                $width += 2;
+            } else {
+                $width += 1;
+            }
+        }
+        return $width;
+    }
+
+    private function padRight($str, $width)
+    {
+        $displayWidth = $this->mbDisplayWidth($str);
+        $padding = max(0, $width - $displayWidth);
+        return $str . str_repeat(' ', $padding);
+    }
+
+    private function getIconPadded($icon)
+    {
+        // Ensure icon takes exactly 2 display columns
+        $displayWidth = $this->mbDisplayWidth($icon);
+        if ($displayWidth < 2) {
+            return $icon . str_repeat(' ', 2 - $displayWidth);
+        }
+        return $icon;
+    }
+
+    private function getFileIcon($filename, $isDir)
+    {
+        if ($isDir) {
+            if ($filename === '..') return '⬆️';
+            return '📂';
+        }
+
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        $icons = array(
+            // Programming
+            'php' => '🐘',
+            'py' => '🐍',
+            'js' => '📜',
+            'ts' => '📘',
+            'jsx' => '⚛️',
+            'tsx' => '⚛️',
+            'rb' => '💎',
+            'go' => '🔷',
+            'rs' => '🦀',
+            'c' => '🔧',
+            'cpp' => '🔧',
+            'h' => '📑',
+            'java' => '☕',
+            'swift' => '🍎',
+
+            // Web
+            'html' => '🌐',
+            'css' => '🎨',
+            'scss' => '🎨',
+
+            // Data
+            'json' => '📋',
+            'xml' => '📄',
+            'yaml' => '📝',
+            'yml' => '📝',
+            'sql' => '🗄️',
+            'csv' => '📊',
+
+            // Documents
+            'md' => '📖',
+            'txt' => '📄',
+            'pdf' => '📕',
+            'doc' => '📘',
+            'docx' => '📘',
+
+            // Images
+            'jpg' => '🖼️',
+            'jpeg' => '🖼️',
+            'png' => '🖼️',
+            'gif' => '🖼️',
+            'svg' => '🎭',
+
+            // Media
+            'mp3' => '🎵',
+            'wav' => '🎵',
+            'mp4' => '🎬',
+            'mov' => '🎬',
+
+            // Archives
+            'zip' => '📦',
+            'tar' => '📦',
+            'gz' => '📦',
+            'rar' => '📦',
+
+            // Config
+            'env' => '⚙️',
+            'ini' => '⚙️',
+            'conf' => '⚙️',
+
+            // Shell
+            'sh' => '🐚',
+            'bash' => '🐚',
+            'zsh' => '🐚',
+
+            // Git
+            'gitignore' => '🙈',
+
+            // Lock files
+            'lock' => '🔒',
+        );
+
+        return isset($icons[$ext]) ? $icons[$ext] : '📄';
+    }
+
     private function drawPanel($panel)
     {
         $isActive = ($panel === $this->activePanel);
