@@ -725,12 +725,12 @@ class DualPaneFileManager
                 foreach ($rules['keywords'] as $keyword) {
                     $kwLen = strlen($keyword);
                     $potentialKeyword = substr($line, $i, $kwLen);
-                    
+
                     // Case-insensitive for SQL, case-sensitive for others
-                    $matches = ($language === 'sql') 
+                    $matches = ($language === 'sql')
                         ? (strcasecmp($potentialKeyword, $keyword) === 0)
                         : ($potentialKeyword === $keyword);
-                    
+
                     if ($matches) {
                         // Check word boundary after keyword
                         $afterChar = isset($line[$i + $kwLen]) ? $line[$i + $kwLen] : '';
@@ -769,7 +769,7 @@ class DualPaneFileManager
                     $i++;
                 }
                 $word = substr($line, $wordStart, $i - $wordStart);
-                
+
                 // Check if followed by (
                 if (isset($line[$i]) && $line[$i] === '(') {
                     $result .= self::COLOR_BRIGHT_CYAN . $word . self::COLOR_RESET;
@@ -832,7 +832,7 @@ class DualPaneFileManager
         $viewerHeight = $this->termHeight - 4;
         $lineNumWidth = strlen((string)$totalLines) + 1;
         $running = true;
-        
+
         // Detect language for syntax highlighting
         $language = $this->getLanguageFromExtension($path);
 
@@ -840,6 +840,11 @@ class DualPaneFileManager
         $this->fullClearScreen();
 
         while ($running) {
+            // Check for terminal resize
+            $this->checkResize();
+            $viewerHeight = $this->termHeight - 4;
+            $lineNumWidth = strlen((string)$totalLines) + 1;
+
             // Use output buffering for flicker-free redraw
             ob_start();
 
@@ -1189,12 +1194,45 @@ class DualPaneFileManager
     private function readKey()
     {
         $stdin = fopen('php://stdin', 'r');
-        stream_set_blocking($stdin, true);
+        stream_set_blocking($stdin, false);
 
-        $c = fread($stdin, 1);
+        $c = null;
+
+        // Use stream_select with timeout to allow periodic resize checks
+        while ($c === null) {
+            $read = array($stdin);
+            $write = null;
+            $except = null;
+
+            // Wait up to 100ms for input, then check for resize
+            $result = stream_select($read, $write, $except, 0, 100000);
+
+            if ($result === false) {
+                // Error occurred
+                break;
+            } elseif ($result > 0) {
+                // Input available
+                $c = fread($stdin, 1);
+            } else {
+                // Timeout - check for resize and redraw if needed
+                $oldWidth = $this->termWidth;
+                $oldHeight = $this->termHeight;
+                $this->getTerminalSize();
+
+                if ($this->termWidth !== $oldWidth || $this->termHeight !== $oldHeight) {
+                    $this->panelWidth = (int)(($this->termWidth - 3) / 2);
+                    $this->contentHeight = $this->termHeight - 6;
+                    $this->fullClearScreen();
+                    $this->draw();
+                }
+            }
+        }
 
         // Handle escape sequences (arrow keys, function keys, etc.)
         if ($c === "\033") {
+            // Set blocking temporarily for escape sequence
+            stream_set_blocking($stdin, true);
+
             $next = fread($stdin, 1);
             if ($next === '[') {
                 $c .= $next;
@@ -1321,6 +1359,12 @@ class DualPaneFileManager
         // Hide cursor
         echo "\033[?25l";
 
+        // Install signal handler for terminal resize (SIGWINCH)
+        if (function_exists('pcntl_signal')) {
+            declare(ticks = 1);
+            pcntl_signal(SIGWINCH, array($this, 'handleResize'));
+        }
+
         // Do initial full clear
         $this->fullClearScreen();
 
@@ -1328,6 +1372,9 @@ class DualPaneFileManager
 
         try {
             while ($this->running) {
+                // Check for terminal resize on each loop (fallback method)
+                $this->checkResize();
+
                 $this->draw();
                 $this->handleInput();
             }
@@ -1342,6 +1389,32 @@ class DualPaneFileManager
         system('stty sane');
         echo "\033[?25h"; // Show cursor
         echo "Thanks for using DualPane File Manager!\n";
+    }
+
+    public function handleResize($signo = null)
+    {
+        $this->getTerminalSize();
+        $this->panelWidth = (int)(($this->termWidth - 3) / 2);
+        $this->contentHeight = $this->termHeight - 6;
+        $this->fullClearScreen();
+        $this->statusMessage = "Terminal resized to {$this->termWidth}x{$this->termHeight}";
+    }
+
+    private $lastTermWidth = 0;
+    private $lastTermHeight = 0;
+
+    private function checkResize()
+    {
+        $oldWidth = $this->termWidth;
+        $oldHeight = $this->termHeight;
+
+        $this->getTerminalSize();
+
+        if ($this->termWidth !== $oldWidth || $this->termHeight !== $oldHeight) {
+            $this->panelWidth = (int)(($this->termWidth - 3) / 2);
+            $this->contentHeight = $this->termHeight - 6;
+            $this->fullClearScreen();
+        }
     }
 }
 
