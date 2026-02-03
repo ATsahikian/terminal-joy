@@ -453,18 +453,18 @@ class DualPaneFileManager
             echo self::COLOR_CYAN;
         }
         $this->drawBox($x, $y, $this->panelWidth, $this->contentHeight + 2, $displayPath);
-        echo self::COLOR_RESET;
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
-        // Header
+        // Header - account for emoji width (2 chars) + space (1 char) = 3 chars for icon column
         $this->moveCursor($y + 1, $x + 1);
-        echo self::COLOR_DIM;
-        $nameWidth = $this->panelWidth - 20;
-        echo sprintf(" %-{$nameWidth}s %7s  %12s", 'Name', 'Size', 'Modified');
-        echo self::COLOR_RESET;
+        echo self::COLOR_BG_WARM . self::COLOR_FG_CREAM . self::COLOR_DIM;
+        $nameWidth = $this->panelWidth - 27;
+        echo sprintf("   %-{$nameWidth}s %7s  %-12s", 'Name', 'Size', 'Modified');
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
-        // Draw separator
+        // Draw separator with Unicode
         $this->moveCursor($y + 2, $x);
-        echo '+' . str_repeat('-', $this->panelWidth - 2) . '+';
+        echo self::COLOR_BG_WARM . self::COLOR_FG_CREAM . '├' . str_repeat('─', $this->panelWidth - 2) . '┤';
 
         // Files (apply search filter if active)
         $files = $this->getDisplayFilesForPanel($panel);
@@ -494,31 +494,45 @@ class DualPaneFileManager
             $isSelected = ($fileIndex === $selected);
             $isDir = ($file['type'] === 'dir');
 
-            $nameWidth = $this->panelWidth - 20;
-            $name = $this->truncate($file['name'], $nameWidth - 1);
+            // Get file icon (emoji = 2 char width display) and pad to exactly 2 columns
+            $icon = $this->getIconPadded($this->getFileIcon($file['name'], $isDir));
+
+            // Calculate available width - must match header
+            $nameWidth = $this->panelWidth - 27;
+            $name = $this->truncate($file['name'], $nameWidth);
 
             if ($isDir) {
-                $name = '/' . $name;
-                $sizeStr = '  <DIR>';
+                $sizeStr = '<DIR>';
             } else {
-                $name = ' ' . $name;
                 $sizeStr = $this->formatSize($file['size']);
             }
 
             $dateStr = $file['mtime'] ? date('M d H:i', $file['mtime']) : '';
 
-            $line = sprintf("%-{$nameWidth}s %7s  %12s", $name, $sizeStr, $dateStr);
+            // Build the content line using display-width-aware padding
+            $namePadded = $this->padRight($name, $nameWidth);
+            $sizePadded = sprintf("%7s", $sizeStr);
+            $datePadded = sprintf("%-12s", $dateStr);
+            $content = $namePadded . ' ' . $sizePadded . '  ' . $datePadded;
 
+            // Calculate padding to fill the entire panel width
+            $contentDisplayWidth = $this->mbDisplayWidth($content);
+            $lineDisplayWidth = 3 + $contentDisplayWidth;
+            $padding = max(0, $this->panelWidth - 2 - $lineDisplayWidth);
+
+            // Apply selection highlighting BEFORE content
             if ($isSelected && $isActive) {
                 echo self::COLOR_INVERSE . self::COLOR_BOLD;
             } elseif ($isSelected) {
-                echo self::COLOR_BG_GRAY;
+                echo self::COLOR_BG_GRAY . self::COLOR_WHITE;
             } elseif ($isDir) {
                 echo self::COLOR_CYAN;
             }
 
-            echo $line;
-            echo self::COLOR_RESET;
+            // Output: icon + space + content + padding (all highlighted if selected)
+            echo $icon . ' ' . $content . str_repeat(' ', $padding);
+
+            echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
         }
     }
 
