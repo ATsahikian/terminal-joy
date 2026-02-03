@@ -154,7 +154,7 @@ class DualPaneFileManager
     public function __construct()
     {
         $this->getTerminalSize();
-        $this->panelWidth = (int)(($this->termWidth - 3) / 2);
+        $this->panelWidth = (int)(($this->termWidth - 1) / 2);
         $this->contentHeight = $this->termHeight - 6;
 
         $this->panels = array(
@@ -1394,7 +1394,7 @@ class DualPaneFileManager
     private function refresh()
     {
         $this->getTerminalSize();
-        $this->panelWidth = (int)(($this->termWidth - 3) / 2);
+        $this->panelWidth = (int)(($this->termWidth - 1) / 2);
         $this->contentHeight = $this->termHeight - 6;
         $this->loadDirectory(0);
         $this->loadDirectory(1);
@@ -1430,7 +1430,7 @@ class DualPaneFileManager
                 $this->getTerminalSize();
 
                 if ($this->termWidth !== $oldWidth || $this->termHeight !== $oldHeight) {
-                    $this->panelWidth = (int)(($this->termWidth - 3) / 2);
+                    $this->panelWidth = (int)(($this->termWidth - 1) / 2);
                     $this->contentHeight = $this->termHeight - 6;
                     $this->fullClearScreen();
                     $this->draw();
