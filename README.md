@@ -11,6 +11,7 @@ A fast, lightweight two-column CLI file manager written in PHP with Mac-friendly
 - **Dual-pane interface** - Two side-by-side panels for easy file operations
 - **Mac-friendly controls** - Vim-style navigation (no Home/End/PageUp/PageDown needed)
 - **Built-in file viewer** - View text files with scrolling, search, and line numbers
+- **Syntax highlighting** - Color-coded display for PHP, Python, JavaScript, Ruby, Go, Rust, C/C++, Bash, and SQL
 - **File operations** - Copy, move, and delete files between panels
 - **Search & filter** - Quickly find files by name
 - **Go to path** - Navigate directly to any directory
@@ -130,6 +131,31 @@ sudo dnf install php-cli
 # Arch
 sudo pacman -S php
 ```
+
+## 🎨 Syntax Highlighting
+
+The file viewer includes syntax highlighting for the following languages:
+
+| Language | File Extensions |
+|----------|-----------------|
+| PHP | `.php` |
+| Python | `.py` |
+| JavaScript/TypeScript | `.js`, `.jsx`, `.ts`, `.tsx` |
+| Ruby | `.rb` |
+| Go | `.go` |
+| Rust | `.rs` |
+| C/C++ | `.c`, `.h`, `.cpp`, `.hpp`, `.cc` |
+| Bash/Shell | `.sh`, `.bash`, `.zsh` |
+| SQL | `.sql`, `.mysql` |
+
+**Color scheme:**
+- 🟣 **Keywords** - Purple/bold (function, class, if, return, etc.)
+- 🟢 **Strings** - Green ("text", 'text')
+- 🔵 **Variables** - Blue ($var, @var)
+- 🟡 **Operators** - Yellow (+, -, =, etc.)
+- 🟠 **Numbers** - Orange (123, 3.14)
+- 🔷 **Function calls** - Cyan (myFunc())
+- ⬜ **Comments** - Dim/gray (// comment, # comment)
 
 ## 🎨 Interface Preview
 

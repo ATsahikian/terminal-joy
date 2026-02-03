@@ -64,6 +64,85 @@ class DualPaneFileManager
     const COLOR_BG_YELLOW = "\033[43m";
     const COLOR_BLACK = "\033[30m";
     const COLOR_INVERSE = "\033[7m";
+    const COLOR_MAGENTA = "\033[35m";
+    const COLOR_BRIGHT_BLUE = "\033[94m";
+    const COLOR_BRIGHT_GREEN = "\033[92m";
+    const COLOR_BRIGHT_YELLOW = "\033[93m";
+    const COLOR_BRIGHT_CYAN = "\033[96m";
+    const COLOR_BRIGHT_MAGENTA = "\033[95m";
+    const COLOR_ORANGE = "\033[38;5;208m";
+
+    // Syntax highlighting patterns by language
+    private static $syntaxRules = array(
+        'php' => array(
+            'keywords' => array('function', 'class', 'public', 'private', 'protected', 'static', 'const', 'new', 'return', 'if', 'else', 'elseif', 'while', 'for', 'foreach', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'throw', 'finally', 'use', 'namespace', 'extends', 'implements', 'interface', 'trait', 'abstract', 'final', 'echo', 'print', 'require', 'include', 'require_once', 'include_once', 'array', 'true', 'false', 'null', 'self', 'parent', 'this'),
+            'comment' => array('//', '#', '/*', '*/'),
+            'string' => array('"', "'"),
+        ),
+        'python' => array(
+            'keywords' => array('def', 'class', 'import', 'from', 'as', 'return', 'if', 'elif', 'else', 'while', 'for', 'in', 'try', 'except', 'finally', 'raise', 'with', 'lambda', 'yield', 'global', 'nonlocal', 'pass', 'break', 'continue', 'True', 'False', 'None', 'and', 'or', 'not', 'is', 'async', 'await', 'self'),
+            'comment' => array('#'),
+            'string' => array('"', "'", '"""', "'''"),
+        ),
+        'javascript' => array(
+            'keywords' => array('function', 'const', 'let', 'var', 'class', 'extends', 'new', 'return', 'if', 'else', 'while', 'for', 'switch', 'case', 'break', 'continue', 'try', 'catch', 'throw', 'finally', 'async', 'await', 'import', 'export', 'default', 'from', 'true', 'false', 'null', 'undefined', 'this', 'super', 'typeof', 'instanceof', 'of', 'in'),
+            'comment' => array('//', '/*', '*/'),
+            'string' => array('"', "'", '`'),
+        ),
+        'ruby' => array(
+            'keywords' => array('def', 'class', 'module', 'end', 'if', 'elsif', 'else', 'unless', 'while', 'until', 'for', 'do', 'begin', 'rescue', 'ensure', 'raise', 'return', 'yield', 'require', 'include', 'extend', 'attr_accessor', 'attr_reader', 'attr_writer', 'true', 'false', 'nil', 'self', 'super', 'and', 'or', 'not', 'lambda', 'proc'),
+            'comment' => array('#'),
+            'string' => array('"', "'"),
+        ),
+        'go' => array(
+            'keywords' => array('func', 'package', 'import', 'type', 'struct', 'interface', 'const', 'var', 'return', 'if', 'else', 'for', 'range', 'switch', 'case', 'default', 'break', 'continue', 'go', 'defer', 'select', 'chan', 'map', 'make', 'new', 'true', 'false', 'nil', 'iota'),
+            'comment' => array('//', '/*', '*/'),
+            'string' => array('"', "'", '`'),
+        ),
+        'rust' => array(
+            'keywords' => array('fn', 'let', 'mut', 'const', 'struct', 'enum', 'impl', 'trait', 'pub', 'mod', 'use', 'return', 'if', 'else', 'match', 'while', 'for', 'loop', 'break', 'continue', 'async', 'await', 'move', 'ref', 'self', 'Self', 'super', 'true', 'false', 'Some', 'None', 'Ok', 'Err', 'where', 'unsafe', 'extern', 'crate'),
+            'comment' => array('//', '/*', '*/'),
+            'string' => array('"'),
+        ),
+        'c' => array(
+            'keywords' => array('int', 'char', 'float', 'double', 'void', 'long', 'short', 'unsigned', 'signed', 'const', 'static', 'extern', 'struct', 'union', 'enum', 'typedef', 'sizeof', 'return', 'if', 'else', 'while', 'for', 'do', 'switch', 'case', 'default', 'break', 'continue', 'goto', 'include', 'define', 'ifdef', 'ifndef', 'endif', 'NULL', 'true', 'false'),
+            'comment' => array('//', '/*', '*/'),
+            'string' => array('"', "'"),
+        ),
+        'bash' => array(
+            'keywords' => array('if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'exit', 'echo', 'read', 'local', 'export', 'source', 'alias', 'unalias', 'set', 'unset', 'shift', 'true', 'false', 'in'),
+            'comment' => array('#'),
+            'string' => array('"', "'"),
+        ),
+        'sql' => array(
+            'keywords' => array('SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER', 'TABLE', 'INDEX', 'VIEW', 'INTO', 'VALUES', 'SET', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON', 'AND', 'OR', 'NOT', 'NULL', 'IS', 'IN', 'LIKE', 'ORDER', 'BY', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET', 'AS', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'TRUE', 'FALSE'),
+            'comment' => array('--', '/*', '*/'),
+            'string' => array("'"),
+        ),
+    );
+
+    // File extension to language mapping
+    private static $extensionMap = array(
+        'php' => 'php',
+        'py' => 'python',
+        'js' => 'javascript',
+        'jsx' => 'javascript',
+        'ts' => 'javascript',
+        'tsx' => 'javascript',
+        'rb' => 'ruby',
+        'go' => 'go',
+        'rs' => 'rust',
+        'c' => 'c',
+        'h' => 'c',
+        'cpp' => 'c',
+        'hpp' => 'c',
+        'cc' => 'c',
+        'sh' => 'bash',
+        'bash' => 'bash',
+        'zsh' => 'bash',
+        'sql' => 'sql',
+        'mysql' => 'sql',
+    );
 
     public function __construct()
     {
@@ -574,6 +653,162 @@ class DualPaneFileManager
         }
     }
 
+    private function getLanguageFromExtension($path)
+    {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        return isset(self::$extensionMap[$ext]) ? self::$extensionMap[$ext] : null;
+    }
+
+    private function highlightSyntax($line, $language)
+    {
+        if (!$language || !isset(self::$syntaxRules[$language])) {
+            return $line;
+        }
+
+        $rules = self::$syntaxRules[$language];
+        $result = '';
+        $inString = false;
+        $stringChar = '';
+        $inComment = false;
+        $i = 0;
+        $len = strlen($line);
+
+        while ($i < $len) {
+            $char = $line[$i];
+            $remaining = substr($line, $i);
+
+            // Check for single-line comment start
+            if (!$inString && !$inComment) {
+                foreach ($rules['comment'] as $commentStart) {
+                    if ($commentStart === '//' || $commentStart === '#' || $commentStart === '--') {
+                        if (strpos($remaining, $commentStart) === 0) {
+                            // Rest of line is a comment
+                            $result .= self::COLOR_DIM . substr($line, $i) . self::COLOR_RESET;
+                            return $result;
+                        }
+                    }
+                }
+            }
+
+            // Check for string start/end
+            if (!$inComment) {
+                foreach ($rules['string'] as $strChar) {
+                    if (strpos($remaining, $strChar) === 0) {
+                        if ($inString && $stringChar === $strChar) {
+                            // End of string
+                            $result .= $strChar . self::COLOR_RESET;
+                            $inString = false;
+                            $stringChar = '';
+                            $i += strlen($strChar);
+                            continue 2;
+                        } elseif (!$inString) {
+                            // Start of string
+                            $inString = true;
+                            $stringChar = $strChar;
+                            $result .= self::COLOR_GREEN . $strChar;
+                            $i += strlen($strChar);
+                            continue 2;
+                        }
+                    }
+                }
+            }
+
+            if ($inString) {
+                $result .= $char;
+                $i++;
+                continue;
+            }
+
+            // Check for keywords (must be word boundaries)
+            $foundKeyword = false;
+            if (ctype_alpha($char) || $char === '_' || $char === '$') {
+                foreach ($rules['keywords'] as $keyword) {
+                    $kwLen = strlen($keyword);
+                    $potentialKeyword = substr($line, $i, $kwLen);
+                    
+                    // Case-insensitive for SQL, case-sensitive for others
+                    $matches = ($language === 'sql') 
+                        ? (strcasecmp($potentialKeyword, $keyword) === 0)
+                        : ($potentialKeyword === $keyword);
+                    
+                    if ($matches) {
+                        // Check word boundary after keyword
+                        $afterChar = isset($line[$i + $kwLen]) ? $line[$i + $kwLen] : '';
+                        if ($afterChar === '' || !ctype_alnum($afterChar) && $afterChar !== '_') {
+                            // Check word boundary before keyword
+                            $beforeChar = ($i > 0) ? $line[$i - 1] : '';
+                            if ($beforeChar === '' || !ctype_alnum($beforeChar) && $beforeChar !== '_' && $beforeChar !== '$') {
+                                $result .= self::COLOR_MAGENTA . self::COLOR_BOLD . $potentialKeyword . self::COLOR_RESET;
+                                $i += $kwLen;
+                                $foundKeyword = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($foundKeyword) {
+                continue;
+            }
+
+            // Check for numbers
+            if (ctype_digit($char) || ($char === '.' && isset($line[$i + 1]) && ctype_digit($line[$i + 1]))) {
+                $numStart = $i;
+                while ($i < $len && (ctype_digit($line[$i]) || $line[$i] === '.' || $line[$i] === 'x' || ctype_xdigit($line[$i]))) {
+                    $i++;
+                }
+                $result .= self::COLOR_ORANGE . substr($line, $numStart, $i - $numStart) . self::COLOR_RESET;
+                continue;
+            }
+
+            // Check for function calls (word followed by parenthesis)
+            if (ctype_alpha($char) || $char === '_') {
+                $wordStart = $i;
+                while ($i < $len && (ctype_alnum($line[$i]) || $line[$i] === '_')) {
+                    $i++;
+                }
+                $word = substr($line, $wordStart, $i - $wordStart);
+                
+                // Check if followed by (
+                if (isset($line[$i]) && $line[$i] === '(') {
+                    $result .= self::COLOR_BRIGHT_CYAN . $word . self::COLOR_RESET;
+                } else {
+                    $result .= $word;
+                }
+                continue;
+            }
+
+            // Check for special variables ($var in PHP, @var in Ruby)
+            if ($char === '$' || ($language === 'ruby' && $char === '@')) {
+                $varStart = $i;
+                $i++;
+                while ($i < $len && (ctype_alnum($line[$i]) || $line[$i] === '_')) {
+                    $i++;
+                }
+                $result .= self::COLOR_BRIGHT_BLUE . substr($line, $varStart, $i - $varStart) . self::COLOR_RESET;
+                continue;
+            }
+
+            // Operators and brackets
+            if (strpos('{}[]()=<>+-*/%&|!^~:;,.', $char) !== false) {
+                $result .= self::COLOR_YELLOW . $char . self::COLOR_RESET;
+                $i++;
+                continue;
+            }
+
+            $result .= $char;
+            $i++;
+        }
+
+        // If we're still in a string at end of line, close the color
+        if ($inString) {
+            $result .= self::COLOR_RESET;
+        }
+
+        return $result;
+    }
+
     private function viewFile($path)
     {
         $content = @file_get_contents($path);
@@ -597,6 +832,9 @@ class DualPaneFileManager
         $viewerHeight = $this->termHeight - 4;
         $lineNumWidth = strlen((string)$totalLines) + 1;
         $running = true;
+        
+        // Detect language for syntax highlighting
+        $language = $this->getLanguageFromExtension($path);
 
         // Full clear on first draw
         $this->fullClearScreen();
@@ -643,7 +881,7 @@ class DualPaneFileManager
                 // Truncate and pad line content
                 $lineContent = substr($line, 0, $displayWidth);
 
-                // Highlight search matches
+                // Highlight search matches (takes priority over syntax highlighting)
                 if (!empty($viewerSearch) && stripos($lineContent, $viewerSearch) !== false) {
                     $highlighted = preg_replace(
                         '/(' . preg_quote($viewerSearch, '/') . ')/i',
@@ -651,6 +889,9 @@ class DualPaneFileManager
                         $lineContent
                     );
                     echo $highlighted;
+                } elseif ($language) {
+                    // Apply syntax highlighting
+                    echo $this->highlightSyntax($lineContent, $language);
                 } else {
                     echo $lineContent;
                 }
