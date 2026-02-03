@@ -539,19 +539,19 @@ class DualPaneFileManager
     private function drawStatusBar()
     {
         $this->moveCursor($this->termHeight - 2, 1);
-        echo self::COLOR_BG_BLUE . self::COLOR_WHITE;
-        echo str_pad($this->statusMessage, $this->termWidth);
-        echo self::COLOR_RESET;
+        echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
+        echo str_pad(" > " . $this->statusMessage, $this->termWidth);
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         $this->moveCursor($this->termHeight - 1, 1);
-        echo self::COLOR_DIM;
-        echo " Arrows/jk:Nav  Tab/hl:Panel  u/d:Page  0/$:Jump  p:Path  /:Find  c:Copy  m:Move  x:Del  q:Quit";
-        echo self::COLOR_RESET;
+        echo self::COLOR_BG_WARM_ACCENT . self::COLOR_FG_CREAM;
+        echo str_pad(" jk:Nav | hl:Panel | ud:Page | p:Path | /:Find | c:Copy | m:Move | x:Del | q:Quit", $this->termWidth);
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         // Show search filter if active
         if (!empty($this->searchFilter)) {
             $this->moveCursor($this->termHeight, 1);
-            echo self::COLOR_YELLOW . " Filter: " . $this->searchFilter . self::COLOR_RESET;
+            echo self::COLOR_YELLOW . " Filter: " . $this->searchFilter . self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
         }
     }
 
@@ -562,6 +562,9 @@ class DualPaneFileManager
 
         // Hide cursor before drawing
         echo "\033[?25l";
+
+        // Set warm background for entire screen
+        echo self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         // Move to home position (don't clear - overwrite in place)
         $this->clearScreen();
@@ -651,9 +654,9 @@ class DualPaneFileManager
     {
         echo "\033[?25h"; // Show cursor
         $this->moveCursor($this->termHeight - 2, 1);
-        echo self::COLOR_BG_BLUE . self::COLOR_WHITE;
+        echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
         echo str_pad(" Go to path: ", $this->termWidth);
-        echo self::COLOR_RESET;
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
         $this->moveCursor($this->termHeight - 2, 14);
 
         // Restore terminal for input
@@ -718,9 +721,9 @@ class DualPaneFileManager
     {
         echo "\033[?25h"; // Show cursor
         $this->moveCursor($this->termHeight - 2, 1);
-        echo self::COLOR_BG_BLUE . self::COLOR_WHITE;
+        echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
         echo str_pad(" Search: ", $this->termWidth);
-        echo self::COLOR_RESET;
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
         $this->moveCursor($this->termHeight - 2, 10);
 
         // Restore terminal for input
@@ -1300,9 +1303,9 @@ class DualPaneFileManager
         $path = $this->getSelectedPath();
 
         $this->moveCursor($this->termHeight - 2, 1);
-        echo self::COLOR_BG_BLUE . self::COLOR_WHITE;
+        echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
         echo str_pad(" Delete " . $file['name'] . "? (y/N) ", $this->termWidth);
-        echo self::COLOR_RESET;
+        echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         $key = $this->readKey();
 
