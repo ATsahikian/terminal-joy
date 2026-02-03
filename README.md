@@ -1,6 +1,6 @@
-# DualPane File Manager
+# Terminal Joy - DualPane File Manager
 
-A fast, lightweight two-column CLI file manager written in PHP with Mac-friendly keyboard controls.
+A fast, lightweight two-column CLI file manager written in PHP with Mac-friendly keyboard controls, emoji icons, and a warm eye-friendly color scheme.
 
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -9,12 +9,16 @@ A fast, lightweight two-column CLI file manager written in PHP with Mac-friendly
 ## ✨ Features
 
 - **Dual-pane interface** - Two side-by-side panels for easy file operations
+- **Emoji file icons** - 📂 folders, 🐘 PHP, 🐍 Python, 📜 JavaScript, and more
+- **Warm color scheme** - Easy on the eyes with a dark warm gray background
+- **Unicode box drawing** - Beautiful rounded corners (╭╮╰╯) and clean borders
 - **Mac-friendly controls** - Vim-style navigation (no Home/End/PageUp/PageDown needed)
 - **Built-in file viewer** - View text files with scrolling, search, and line numbers
 - **Syntax highlighting** - Color-coded display for PHP, Python, JavaScript, Ruby, Go, Rust, C/C++, Bash, and SQL
 - **File operations** - Copy, move, and delete files between panels
 - **Search & filter** - Quickly find files by name
 - **Go to path** - Navigate directly to any directory
+- **Terminal resize support** - Automatically adapts when you resize your terminal
 - **No dependencies** - Just PHP and a terminal
 
 ## 🚀 Quick Start
@@ -107,11 +111,41 @@ php filemanager.php
 | Previous match | `N` (Shift+n) |
 | Close viewer | `q` or `Esc` |
 
+## 🎨 File Icons
+
+| Type | Icon |
+|------|------|
+| Folders | 📂 |
+| Parent directory | ⬆️ |
+| PHP | 🐘 |
+| Python | 🐍 |
+| JavaScript | 📜 |
+| TypeScript | 📘 |
+| React (JSX/TSX) | ⚛️ |
+| Ruby | 💎 |
+| Go | 🔷 |
+| Rust | 🦀 |
+| C/C++ | 🔧 |
+| Java | ☕ |
+| Swift | 🍎 |
+| HTML | 🌐 |
+| CSS/SCSS | 🎨 |
+| JSON | 📋 |
+| Markdown | 📖 |
+| Images | 🖼️ |
+| Videos | 🎬 |
+| Audio | 🎵 |
+| Archives | 📦 |
+| Shell scripts | 🐚 |
+| Config files | ⚙️ |
+| Lock files | 🔒 |
+
 ## 📋 Requirements
 
 - **PHP 7.4+** (CLI version)
 - **Unix-like terminal** (macOS, Linux, WSL)
 - `stty` command (standard on Unix systems)
+- Terminal with Unicode/emoji support
 
 Check if PHP is installed:
 
@@ -156,22 +190,6 @@ The file viewer includes syntax highlighting for the following languages:
 - 🟠 **Numbers** - Orange (123, 3.14)
 - 🔷 **Function calls** - Cyan (myFunc())
 - ⬜ **Comments** - Dim/gray (// comment, # comment)
-
-## 🎨 Interface Preview
-
-```
-+--[ /home/user/projects ]-------------+ +--[ /home/user/documents ]-----------+
-| Name                    Size Modified| | Name                    Size Modified|
-+--------------------------------------+ +--------------------------------------+
-|/..                      <DIR>        | |/..                      <DIR>        |
-|/src                     <DIR>        | |/notes                   <DIR>        |
-|/tests                   <DIR>        | | report.pdf            2.4M Jan 15    |
-| README.md             4.2K Jan 20    | | todo.txt              1.2K Jan 18    |
-| package.json          1.1K Jan 19    | |                                      |
-+--------------------------------------+ +--------------------------------------+
-Welcome to DualPane File Manager! Press 'q' to quit.
- Arrows/jk:Nav  Tab/hl:Panel  u/d:Page  0/$:Jump  p:Path  /:Find  q:Quit
-```
 
 ## 📄 License
 
