@@ -808,23 +808,55 @@ class DualPaneFileManager
         return isset(self::$extensionMap[$ext]) ? self::$extensionMap[$ext] : null;
     }
 
-    private function highlightSyntax($line, $language)
+    private function highlightSyntax($line, $language, $inMultilineComment = false)
     {
         if (!$language || !isset(self::$syntaxRules[$language])) {
-            return $line;
+            return array('output' => $line, 'inComment' => $inMultilineComment);
         }
+
+        // Define reset that maintains warm background
+        $resetToWarm = self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         $rules = self::$syntaxRules[$language];
         $result = '';
         $inString = false;
         $stringChar = '';
-        $inComment = false;
+        $inComment = $inMultilineComment;
         $i = 0;
         $len = strlen($line);
+
+        // If we're already in a multiline comment, look for closing */
+        if ($inComment) {
+            $closePos = strpos($line, '*/');
+            if ($closePos !== false) {
+                // End of multiline comment found
+                $result .= self::COLOR_DIM . substr($line, 0, $closePos + 2) . $resetToWarm;
+                $i = $closePos + 2;
+                $inComment = false;
+            } else {
+                // Entire line is still in comment
+                return array('output' => self::COLOR_DIM . $line . $resetToWarm, 'inComment' => true);
+            }
+        }
 
         while ($i < $len) {
             $char = $line[$i];
             $remaining = substr($line, $i);
+
+            // Check for multiline comment start /*
+            if (!$inString && !$inComment && strpos($remaining, '/*') === 0) {
+                $closePos = strpos($remaining, '*/', 2);
+                if ($closePos !== false) {
+                    // Comment closes on same line
+                    $result .= self::COLOR_DIM . substr($remaining, 0, $closePos + 2) . $resetToWarm;
+                    $i += $closePos + 2;
+                    continue;
+                } else {
+                    // Comment continues to next line
+                    $result .= self::COLOR_DIM . $remaining . $resetToWarm;
+                    return array('output' => $result, 'inComment' => true);
+                }
+            }
 
             // Check for single-line comment start
             if (!$inString && !$inComment) {
@@ -832,8 +864,8 @@ class DualPaneFileManager
                     if ($commentStart === '//' || $commentStart === '#' || $commentStart === '--') {
                         if (strpos($remaining, $commentStart) === 0) {
                             // Rest of line is a comment
-                            $result .= self::COLOR_DIM . substr($line, $i) . self::COLOR_RESET;
-                            return $result;
+                            $result .= self::COLOR_DIM . substr($line, $i) . $resetToWarm;
+                            return array('output' => $result, 'inComment' => false);
                         }
                     }
                 }
@@ -845,7 +877,7 @@ class DualPaneFileManager
                     if (strpos($remaining, $strChar) === 0) {
                         if ($inString && $stringChar === $strChar) {
                             // End of string
-                            $result .= $strChar . self::COLOR_RESET;
+                            $result .= $strChar . $resetToWarm;
                             $inString = false;
                             $stringChar = '';
                             $i += strlen($strChar);
@@ -887,7 +919,7 @@ class DualPaneFileManager
                             // Check word boundary before keyword
                             $beforeChar = ($i > 0) ? $line[$i - 1] : '';
                             if ($beforeChar === '' || !ctype_alnum($beforeChar) && $beforeChar !== '_' && $beforeChar !== '$') {
-                                $result .= self::COLOR_MAGENTA . self::COLOR_BOLD . $potentialKeyword . self::COLOR_RESET;
+                                $result .= self::COLOR_MAGENTA . self::COLOR_BOLD . $potentialKeyword . $resetToWarm;
                                 $i += $kwLen;
                                 $foundKeyword = true;
                                 break;
@@ -907,7 +939,7 @@ class DualPaneFileManager
                 while ($i < $len && (ctype_digit($line[$i]) || $line[$i] === '.' || $line[$i] === 'x' || ctype_xdigit($line[$i]))) {
                     $i++;
                 }
-                $result .= self::COLOR_ORANGE . substr($line, $numStart, $i - $numStart) . self::COLOR_RESET;
+                $result .= self::COLOR_ORANGE . substr($line, $numStart, $i - $numStart) . $resetToWarm;
                 continue;
             }
 
@@ -921,7 +953,7 @@ class DualPaneFileManager
 
                 // Check if followed by (
                 if (isset($line[$i]) && $line[$i] === '(') {
-                    $result .= self::COLOR_BRIGHT_CYAN . $word . self::COLOR_RESET;
+                    $result .= self::COLOR_BRIGHT_CYAN . $word . $resetToWarm;
                 } else {
                     $result .= $word;
                 }
@@ -935,13 +967,13 @@ class DualPaneFileManager
                 while ($i < $len && (ctype_alnum($line[$i]) || $line[$i] === '_')) {
                     $i++;
                 }
-                $result .= self::COLOR_BRIGHT_BLUE . substr($line, $varStart, $i - $varStart) . self::COLOR_RESET;
+                $result .= self::COLOR_BRIGHT_BLUE . substr($line, $varStart, $i - $varStart) . $resetToWarm;
                 continue;
             }
 
             // Operators and brackets
             if (strpos('{}[]()=<>+-*/%&|!^~:;,.', $char) !== false) {
-                $result .= self::COLOR_YELLOW . $char . self::COLOR_RESET;
+                $result .= self::COLOR_YELLOW . $char . $resetToWarm;
                 $i++;
                 continue;
             }
@@ -952,10 +984,10 @@ class DualPaneFileManager
 
         // If we're still in a string at end of line, close the color
         if ($inString) {
-            $result .= self::COLOR_RESET;
+            $result .= $resetToWarm;
         }
 
-        return $result;
+        return array('output' => $result, 'inComment' => $inComment);
     }
 
     private function viewFile($path)
@@ -1013,6 +1045,30 @@ class DualPaneFileManager
             echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
             // Content area
+            // Content area - track multiline comment state
+            // First, compute comment state up to scroll position
+            $inMultilineComment = false;
+            for ($preIdx = 0; $preIdx < $viewerScroll && $preIdx < $totalLines; $preIdx++) {
+                $preLine = $lines[$preIdx];
+                // Simple check for /* and */ to track state
+                $openPos = 0;
+                while (($openPos = strpos($preLine, '/*', $openPos)) !== false) {
+                    $closePos = strpos($preLine, '*/', $openPos + 2);
+                    if ($closePos !== false) {
+                        $openPos = $closePos + 2;
+                    } else {
+                        $inMultilineComment = true;
+                        break;
+                    }
+                }
+                if ($inMultilineComment) {
+                    $closePos = strpos($preLine, '*/');
+                    if ($closePos !== false) {
+                        $inMultilineComment = false;
+                    }
+                }
+            }
+
             for ($i = 0; $i < $viewerHeight; $i++) {
                 $lineNum = $viewerScroll + $i;
                 $this->moveCursor($i + 2, 1);
@@ -1047,8 +1103,10 @@ class DualPaneFileManager
                     );
                     echo $highlighted;
                 } elseif ($language) {
-                    // Apply syntax highlighting
-                    echo $this->highlightSyntax($lineContent, $language);
+                    // Apply syntax highlighting with multiline comment tracking
+                    $highlightResult = $this->highlightSyntax($lineContent, $language, $inMultilineComment);
+                    echo $highlightResult['output'];
+                    $inMultilineComment = $highlightResult['inComment'];
                 } else {
                     echo $lineContent;
                 }
