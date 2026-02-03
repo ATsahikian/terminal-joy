@@ -254,12 +254,13 @@ class DualPaneFileManager
 
     private function drawBox($x, $y, $width, $height, $title = '')
     {
-        $horizontal = '-';
-        $vertical = '|';
-        $topLeft = '+';
-        $topRight = '+';
-        $bottomLeft = '+';
-        $bottomRight = '+';
+        // Unicode box-drawing characters
+        $horizontal = '─';
+        $vertical = '│';
+        $topLeft = '╭';
+        $topRight = '╮';
+        $bottomLeft = '╰';
+        $bottomRight = '╯';
 
         // Top border
         $this->moveCursor($y, $x);
@@ -268,7 +269,7 @@ class DualPaneFileManager
         // Title
         if ($title) {
             $this->moveCursor($y, $x + 2);
-            echo "[ " . self::COLOR_BOLD . $title . self::COLOR_RESET . " ]";
+            echo "─ " . self::COLOR_BOLD . $title . self::COLOR_RESET . " ─";
         }
 
         // Sides
