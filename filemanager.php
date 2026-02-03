@@ -1000,14 +1000,17 @@ class DualPaneFileManager
             // Move cursor home (don't clear)
             echo "\033[H";
 
+            // Set warm background for entire screen
+            echo self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
+
             // Header
             $this->moveCursor(1, 1);
-            echo self::COLOR_BG_BLUE . self::COLOR_WHITE . self::COLOR_BOLD;
+            echo self::COLOR_BG_WARM_HEADER . self::COLOR_FG_CREAM . self::COLOR_BOLD;
             $header = " File: " . $this->truncate(basename($path), $this->termWidth - 30);
             $header .= str_repeat(' ', max(0, $this->termWidth - strlen($header) - 20));
             $header .= sprintf("Line %d-%d/%d ", $viewerScroll + 1, min($viewerScroll + $viewerHeight, $totalLines), $totalLines);
             echo str_pad($header, $this->termWidth);
-            echo self::COLOR_RESET;
+            echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
             // Content area
             for ($i = 0; $i < $viewerHeight; $i++) {
@@ -1015,17 +1018,17 @@ class DualPaneFileManager
                 $this->moveCursor($i + 2, 1);
 
                 // Clear the entire line first
-                echo "\033[2K";
+                echo "\033[2K" . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
                 if ($lineNum >= $totalLines) {
-                    echo self::COLOR_DIM . '~' . self::COLOR_RESET;
+                    echo self::COLOR_DIM . '~' . self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
                     continue;
                 }
 
                 // Line number
                 echo self::COLOR_DIM;
                 echo sprintf("%{$lineNumWidth}d ", $lineNum + 1);
-                echo self::COLOR_RESET;
+                echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
                 $line = $lines[$lineNum];
                 // Remove tabs and control characters that mess up display
@@ -1039,7 +1042,7 @@ class DualPaneFileManager
                 if (!empty($viewerSearch) && stripos($lineContent, $viewerSearch) !== false) {
                     $highlighted = preg_replace(
                         '/(' . preg_quote($viewerSearch, '/') . ')/i',
-                        self::COLOR_BG_YELLOW . self::COLOR_BLACK . '$1' . self::COLOR_RESET,
+                        self::COLOR_BG_YELLOW . self::COLOR_BLACK . '$1' . self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM,
                         $lineContent
                     );
                     echo $highlighted;
@@ -1053,7 +1056,7 @@ class DualPaneFileManager
 
             // Footer / status bar
             $this->moveCursor($this->termHeight - 1, 1);
-            echo self::COLOR_BG_GRAY . self::COLOR_WHITE;
+            echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
             if (!empty($viewerSearch)) {
                 $matchInfo = count($searchMatches) > 0
                     ? sprintf(" Search: '%s' (%d/%d matches) ", $viewerSearch, $currentMatch + 1, count($searchMatches))
@@ -1062,14 +1065,14 @@ class DualPaneFileManager
             } else {
                 echo str_pad(" " . $path, $this->termWidth);
             }
-            echo self::COLOR_RESET;
+            echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
             // Help line
             $this->moveCursor($this->termHeight, 1);
             echo "\033[2K"; // Clear line
-            echo self::COLOR_DIM;
-            echo " Arrows/jk:Scroll  u/d:Page  g/G:Start/End  /:Search  n/N:Match  ::Line  q:Close";
-            echo self::COLOR_RESET;
+            echo self::COLOR_BG_WARM_ACCENT . self::COLOR_FG_CREAM;
+            echo str_pad(" Arrows/jk:Scroll  u/d:Page  g/G:Start/End  /:Search  n/N:Match  ::Line  q:Close", $this->termWidth);
+            echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
             // Flush buffered output
             ob_end_flush();
@@ -1122,9 +1125,9 @@ class DualPaneFileManager
                 case '/': // Search
                     echo "\033[?25h";
                     $this->moveCursor($this->termHeight - 1, 1);
-                    echo self::COLOR_BG_BLUE . self::COLOR_WHITE;
+                    echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
                     echo str_pad(" Search: ", $this->termWidth);
-                    echo self::COLOR_RESET;
+                    echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
                     $this->moveCursor($this->termHeight - 1, 10);
 
                     system('stty sane');
@@ -1163,9 +1166,9 @@ class DualPaneFileManager
                 case ':': // Go to line (vim-style command)
                     echo "\033[?25h";
                     $this->moveCursor($this->termHeight - 1, 1);
-                    echo self::COLOR_BG_BLUE . self::COLOR_WHITE;
+                    echo self::COLOR_BG_WARM_STATUS . self::COLOR_FG_CREAM;
                     echo str_pad(" Go to line: ", $this->termWidth);
-                    echo self::COLOR_RESET;
+                    echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
                     $this->moveCursor($this->termHeight - 1, 14);
 
                     system('stty sane');
