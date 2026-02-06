@@ -151,11 +151,18 @@ class DualPaneFileManager
         'mysql' => 'sql',
     );
 
+    private $needsResize = false;
+
     public function __construct()
     {
         $this->getTerminalSize();
-        $this->panelWidth = (int)(($this->termWidth - 1) / 2);
-        $this->contentHeight = $this->termHeight - 6;
+        $this->panelWidth = (int)($this->termWidth / 2);
+        $this->contentHeight = $this->termHeight - 5;
+
+        // Install signal handler for window resize
+        if (function_exists('pcntl_signal')) {
+            pcntl_signal(SIGWINCH, array($this, 'handleResize'));
+        }
 
         $this->panels = array(
             array(
@@ -178,10 +185,32 @@ class DualPaneFileManager
 
     private function getTerminalSize()
     {
-        $this->termWidth = (int)exec('tput cols');
+        // Try environment variables first (no visible shell command)
+        $cols = getenv('COLUMNS');
+        $lines = getenv('LINES');
+
+        if ($cols && $lines) {
+            $this->termWidth = (int)$cols;
+            $this->termHeight = (int)$lines;
+        } else {
+            // Fall back to stty only if env vars not available
+            $stty = @shell_exec('stty size 2>/dev/null');
+            if ($stty) {
+                $parts = explode(' ', trim($stty));
+                if (count($parts) === 2) {
+                    $this->termHeight = (int)$parts[0];
+                    $this->termWidth = (int)$parts[1];
+                }
+            }
+        }
+
         if (!$this->termWidth) $this->termWidth = 80;
-        $this->termHeight = (int)exec('tput lines');
         if (!$this->termHeight) $this->termHeight = 24;
+    }
+
+    public function handleResize($signo = null)
+    {
+        $this->needsResize = true;
     }
 
     private function loadDirectory($panel)
@@ -252,7 +281,7 @@ class DualPaneFileManager
         echo "\033[{$row};{$col}H";
     }
 
-    private function drawBox($x, $y, $width, $height, $title = '')
+    private function drawBox($x, $y, $width, $height, $title = '', $borderColor = null)
     {
         // Unicode box-drawing characters
         $horizontal = '─';
@@ -262,27 +291,44 @@ class DualPaneFileManager
         $bottomLeft = '╰';
         $bottomRight = '╯';
 
-        // Top border
-        $this->moveCursor($y, $x);
-        echo $topLeft . str_repeat($horizontal, $width - 2) . $topRight;
+        // Border style: use provided color or default grey
+        $fgColor = $borderColor ? $borderColor : self::COLOR_DIM;
+        $borderStyle = self::COLOR_BG_WARM . $fgColor;
 
-        // Title
+        // Top border line with embedded title - build entire line first to prevent jumping
+        $this->moveCursor($y, $x);
         if ($title) {
-            $this->moveCursor($y, $x + 2);
-            echo "─ " . self::COLOR_BOLD . $title . self::COLOR_RESET . " ─";
+            // Calculate space for title (leave room for corners and some dashes)
+            $maxTitleLen = $width - 6;  // 2 corners + at least 2 dashes on each side
+            if (strlen($title) > $maxTitleLen) {
+                $title = substr($title, 0, $maxTitleLen - 3) . '...';
+            }
+            $titlePart = " " . $title . " ";
+            $titleLen = strlen($titlePart);
+            $remainingWidth = $width - 2 - $titleLen;  // -2 for corners
+            $leftDashes = 2;  // Fixed left padding
+            $rightDashes = max(1, $remainingWidth - $leftDashes);
+
+            // Output entire top border line at once
+            echo $borderStyle . $topLeft
+                . str_repeat($horizontal, $leftDashes)
+                . self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_BOLD . $titlePart . self::COLOR_RESET
+                . $borderStyle . str_repeat($horizontal, $rightDashes) . $topRight;
+        } else {
+            echo $borderStyle . $topLeft . str_repeat($horizontal, $width - 2) . $topRight;
         }
 
         // Sides
         for ($i = 1; $i < $height - 1; $i++) {
             $this->moveCursor($y + $i, $x);
-            echo $vertical;
+            echo $borderStyle . $vertical;
             $this->moveCursor($y + $i, $x + $width - 1);
-            echo $vertical;
+            echo $borderStyle . $vertical;
         }
 
-        // Bottom border
+        // Bottom border line
         $this->moveCursor($y + $height - 1, $x);
-        echo $bottomLeft . str_repeat($horizontal, $width - 2) . $bottomRight;
+        echo $borderStyle . $bottomLeft . str_repeat($horizontal, $width - 2) . $bottomRight . self::COLOR_RESET;
     }
 
     private function getDisplayFilesForPanel($panel)
@@ -443,16 +489,14 @@ class DualPaneFileManager
     private function drawPanel($panel)
     {
         $isActive = ($panel === $this->activePanel);
-        $x = ($panel === 0) ? 1 : $this->panelWidth + 2;
+        $x = ($panel === 0) ? 1 : $this->panelWidth + 1;
         $y = 1;
 
         $path = $this->panels[$panel]['path'];
         $displayPath = $this->truncate($path, $this->panelWidth - 6);
 
-        if ($isActive) {
-            echo self::COLOR_CYAN;
-        }
-        $this->drawBox($x, $y, $this->panelWidth, $this->contentHeight + 2, $displayPath);
+        $borderColor = $isActive ? self::COLOR_CYAN : null;
+        $this->drawBox($x, $y, $this->panelWidth, $this->contentHeight + 2, $displayPath, $borderColor);
         echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         // Header - account for emoji width (2 chars) + space (1 char) = 3 chars for icon column
@@ -462,9 +506,10 @@ class DualPaneFileManager
         echo sprintf("   %-{$nameWidth}s %7s  %-12s", 'Name', 'Size', 'Modified');
         echo self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
-        // Draw separator with Unicode
+        // Draw separator with Unicode (same color as panel borders)
+        $separatorColor = $isActive ? self::COLOR_CYAN : self::COLOR_DIM;
         $this->moveCursor($y + 2, $x);
-        echo self::COLOR_BG_WARM . self::COLOR_FG_CREAM . '├' . str_repeat('─', $this->panelWidth - 2) . '┤';
+        echo self::COLOR_BG_WARM . $separatorColor . '├' . str_repeat('─', $this->panelWidth - 2) . '┤' . self::COLOR_RESET . self::COLOR_BG_WARM . self::COLOR_FG_CREAM;
 
         // Files (apply search filter if active)
         $files = $this->getDisplayFilesForPanel($panel);
@@ -1394,8 +1439,8 @@ class DualPaneFileManager
     private function refresh()
     {
         $this->getTerminalSize();
-        $this->panelWidth = (int)(($this->termWidth - 1) / 2);
-        $this->contentHeight = $this->termHeight - 6;
+        $this->panelWidth = (int)($this->termWidth / 2);
+        $this->contentHeight = $this->termHeight - 5;
         $this->loadDirectory(0);
         $this->loadDirectory(1);
         $this->statusMessage = "Refreshed";
@@ -1414,27 +1459,30 @@ class DualPaneFileManager
             $write = null;
             $except = null;
 
-            // Wait up to 100ms for input, then check for resize
-            $result = stream_select($read, $write, $except, 0, 100000);
+            // Process pending signals if pcntl is available
+            if (function_exists('pcntl_signal_dispatch')) {
+                pcntl_signal_dispatch();
+            }
+
+            // Check if resize was signaled
+            if ($this->needsResize) {
+                $this->needsResize = false;
+                $this->getTerminalSize();
+                $this->panelWidth = (int)($this->termWidth / 2);
+                $this->contentHeight = $this->termHeight - 5;
+                $this->fullClearScreen();
+                $this->draw();
+            }
+
+            // Wait up to 500ms for input (longer interval since we use signals now)
+            $result = stream_select($read, $write, $except, 0, 500000);
 
             if ($result === false) {
-                // Error occurred
-                break;
+                // Error occurred (could be signal interrupt, which is fine)
+                continue;
             } elseif ($result > 0) {
                 // Input available
                 $c = fread($stdin, 1);
-            } else {
-                // Timeout - check for resize and redraw if needed
-                $oldWidth = $this->termWidth;
-                $oldHeight = $this->termHeight;
-                $this->getTerminalSize();
-
-                if ($this->termWidth !== $oldWidth || $this->termHeight !== $oldHeight) {
-                    $this->panelWidth = (int)(($this->termWidth - 1) / 2);
-                    $this->contentHeight = $this->termHeight - 6;
-                    $this->fullClearScreen();
-                    $this->draw();
-                }
             }
         }
 
@@ -1601,17 +1649,15 @@ class DualPaneFileManager
         echo "Thanks for using DualPane File Manager!\n";
     }
 
-    public function handleResize($signo = null)
+    private function refreshPanels()
     {
         $this->getTerminalSize();
-        $this->panelWidth = (int)(($this->termWidth - 3) / 2);
-        $this->contentHeight = $this->termHeight - 6;
-        $this->fullClearScreen();
-        $this->statusMessage = "Terminal resized to {$this->termWidth}x{$this->termHeight}";
+        $this->panelWidth = (int)($this->termWidth / 2);
+        $this->contentHeight = $this->termHeight - 5;
+        $this->loadDirectory(0);
+        $this->loadDirectory(1);
+        $this->statusMessage = "Refreshed";
     }
-
-    private $lastTermWidth = 0;
-    private $lastTermHeight = 0;
 
     private function checkResize()
     {
@@ -1621,8 +1667,8 @@ class DualPaneFileManager
         $this->getTerminalSize();
 
         if ($this->termWidth !== $oldWidth || $this->termHeight !== $oldHeight) {
-            $this->panelWidth = (int)(($this->termWidth - 3) / 2);
-            $this->contentHeight = $this->termHeight - 6;
+            $this->panelWidth = (int)($this->termWidth / 2);
+            $this->contentHeight = $this->termHeight - 5;
             $this->fullClearScreen();
         }
     }
